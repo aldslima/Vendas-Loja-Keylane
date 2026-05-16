@@ -1,3 +1,6 @@
+# index.html atualizado
+
+```html
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -285,7 +288,10 @@ function adicionarVenda(){
     pago,
     restante: valor - pago,
     data,
-    historicoPagamentos:[]
+    historicoPagamentos:[],
+    dataQuitacao: pago >= valor
+      ? new Date().toLocaleDateString('pt-BR')
+      : null
 
   });
 
@@ -313,6 +319,15 @@ function marcarPagamento(index){
     return;
   }
 
+  if(valor > vendas[index].restante){
+
+    alert(
+      'O valor informado é maior que o restante da dívida.'
+    );
+
+    return;
+  }
+
   let dataRecebimento = prompt(
     'Digite a data do recebimento:\n\nFormato: DD/MM/AAAA',
     new Date().toLocaleDateString('pt-BR')
@@ -332,6 +347,9 @@ function marcarPagamento(index){
       vendas[index].valor;
 
     vendas[index].restante = 0;
+
+    vendas[index].dataQuitacao =
+      new Date().toLocaleDateString('pt-BR');
 
   }else{
 
@@ -370,16 +388,20 @@ function excluirVenda(index){
 function gerarRelatorio(cliente){
 
   const vendasCliente = vendas.filter(
-    v => v.cliente === cliente && v.restante > 0
+    v => v.cliente === cliente
   );
 
   if(vendasCliente.length === 0){
 
-    alert('Este cliente não possui valores em aberto.');
+    alert('Nenhuma venda encontrada para este cliente.');
     return;
   }
 
   let totalDevendo = 0;
+
+  vendasCliente.forEach(v => {
+    totalDevendo += v.restante;
+  });
 
   let html = `
 
@@ -460,7 +482,6 @@ function gerarRelatorio(cliente){
         text-align:center;
         font-size:24px;
         font-weight:bold;
-        color:#dc3545;
         margin-top:25px;
       }
 
@@ -487,6 +508,12 @@ function gerarRelatorio(cliente){
         background:#007bff;
       }
 
+      .quitado{
+        color:#28a745;
+        font-weight:bold;
+        margin-top:10px;
+      }
+
     </style>
 
   </head>
@@ -495,15 +522,19 @@ function gerarRelatorio(cliente){
 
     <div class="relatorio" id="conteudo">
 
-      <h1>Relatório de Débitos</h1>
+      <h1>
+        ${
+          totalDevendo > 0
+          ? 'Relatório de Débitos'
+          : 'Comprovante de Quitação'
+        }
+      </h1>
 
       <h2>Cliente: ${cliente}</h2>
 
   `;
 
   vendasCliente.forEach(venda => {
-
-    totalDevendo += venda.restante;
 
     html += `
 
@@ -521,13 +552,27 @@ function gerarRelatorio(cliente){
           Pago: R$ ${venda.pago.toFixed(2)}
         </div>
 
-        <div class="valor">
-          Em aberto: R$ ${venda.restante.toFixed(2)}
+        <div class="valor" style="color:${venda.restante > 0 ? 'red' : 'green'};">
+          ${
+            venda.restante > 0
+            ? `Em aberto: R$ ${venda.restante.toFixed(2)}`
+            : 'DÉBITO QUITADO'
+          }
         </div>
 
         <div style="margin-top:10px;">
           Data da compra: ${venda.data}
         </div>
+
+        ${
+          venda.dataQuitacao
+          ? `
+            <div class="quitado">
+              Quitado em: ${venda.dataQuitacao}
+            </div>
+          `
+          : ''
+        }
 
     `;
 
@@ -564,8 +609,16 @@ function gerarRelatorio(cliente){
 
   html += `
 
-      <div class="total">
-        TOTAL EM ABERTO: R$ ${totalDevendo.toFixed(2)}
+      <div class="total" style="
+        color:${totalDevendo > 0 ? '#dc3545' : '#28a745'};
+      ">
+
+        ${
+          totalDevendo > 0
+          ? `TOTAL EM ABERTO: R$ ${totalDevendo.toFixed(2)}`
+          : `DÉBITO QUITADO`
+        }
+
       </div>
 
       <div class="acoes">
@@ -705,7 +758,7 @@ function listarVendas(){
 
             <button
               class="btn-relatorio"
-              onclick="gerarRelatorio('${venda.cliente}')"
+              onclick='gerarRelatorio(${JSON.stringify(venda.cliente)})'
             >
               Ver
             </button>
@@ -753,3 +806,4 @@ listarVendas();
 
 </body>
 </html>
+```
