@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Controle de Vendas a Prazo - Divina Closet</title>
+
+  <style>
+
+    *{
+      margin:0;
+      padding:0;
+      box-sizing:border-box;
+      font-family:Arial,sans-serif;
+    }
+
+    body{
+      background:#f4f4f4;
+      padding:20px;
+    }
+
+    .container{
+      max-width:1100px;
+      margin:auto;
+    }
+
+    h1{
+      text-align:center;
+      margin-bottom:20px;
+      color:#333;
+    }
+
+    .card{
+      background:#fff;
+      padding:20px;
+      border-radius:12px;
+      margin-bottom:20px;
+      box-shadow:0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+      gap:10px;
+    }
+
+    input,
+    button{
+      padding:10px;
+      border-radius:8px;
+      border:1px solid #ccc;
+    }
+
+    button{
+      background:#28a745;
+      color:#fff;
+      border:none;
+      cursor:pointer;
+      font-weight:bold;
+      transition:0.2s;
+    }
+
+    button:hover{
+      opacity:0.9;
+    }
+
+    .search{
+      width:100%;
+      margin-bottom:15px;
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      margin-top:10px;
+      background:white;
+    }
+
+    th,
+    td{
+      padding:12px;
+      border-bottom:1px solid #ddd;
+      text-align:center;
+      font-size:14px;
+    }
+
+    th{
+      background:#333;
+      color:white;
+    }
+
+    .pago{
+      color:green;
+      font-weight:bold;
+    }
+
+    .devendo{
+      color:red;
+      font-weight:bold;
+    }
+
+    .btn-receber{
+      background:#007bff;
+      margin-bottom:5px;
+    }
+
+    .btn-excluir{
+      background:#dc3545;
+    }
+
+    .btn-relatorio{
+      background:#6f42c1;
+    }
+
+    .totais{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+      gap:10px;
+      margin-top:15px;
+    }
+
+    .box-total{
+      background:#fff;
+      padding:15px;
+      border-radius:10px;
+      text-align:center;
+      font-weight:bold;
+      box-shadow:0 2px 10px rgba(0,0,0,0.08);
+    }
+
+    @media(max-width:768px){
+
+      body{
+        padding:10px;
+      }
+
+      table{
+        font-size:12px;
+      }
+
+      th,
+      td{
+        padding:8px;
+      }
+
+      button{
+        width:100%;
+      }
+    }
+
+  </style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+  <h1>Controle de Vendas a Prazo</h1>
+
+  <div class="card">
+
+    <div class="grid">
+
+      <input type="text" id="cliente" placeholder="Nome do Cliente">
+
+      <input type="text" id="produto" placeholder="Produto">
+
+      <input type="number" id="valor" placeholder="Valor Total">
+
+      <input type="number" id="pago" placeholder="Valor Pago">
+
+      <input type="date" id="data">
+
+      <button onclick="adicionarVenda()">
+        Adicionar Venda
+      </button>
+
+    </div>
+
+  </div>
+
+  <div class="card">
+
+    <input
+      type="text"
+      id="pesquisa"
+      class="search"
+      placeholder="Pesquisar cliente..."
+      onkeyup="listarVendas()"
+    >
+
+    <table>
+
+      <thead>
+
+        <tr>
+
+          <th>Cliente</th>
+          <th>Produto</th>
+          <th>Valor</th>
+          <th>Pago</th>
+          <th>Restante</th>
+          <th>Data</th>
+          <th>Status</th>
+          <th>Relatório</th>
+          <th>Ações</th>
+
+        </tr>
+
+      </thead>
+
+      <tbody id="tabelaVendas"></tbody>
+
+    </table>
+
+    <div class="totais">
+
+      <div class="box-total" id="totalVendas">
+        Total Vendido: R$ 0,00
+      </div>
+
+      <div class="box-total" id="totalRecebido">
+        Total Recebido: R$ 0,00
+      </div>
+
+      <div class="box-total" id="totalDevendo">
+        Total Devendo: R$ 0,00
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+
+let vendas = JSON.parse(localStorage.getItem('vendas')) || [];
+
+function salvarLocalStorage(){
+  localStorage.setItem('vendas', JSON.stringify(vendas));
+}
+
+function limparCampos(){
+
+  document.getElementById('cliente').value = '';
+  document.getElementById('produto').value = '';
+  document.getElementById('valor').value = '';
+  document.getElementById('pago').value = '';
+  document.getElementById('data').value = '';
+
+}
+
+function adicionarVenda(){
+
+  const cliente =
+    document.getElementById('cliente').value.trim();
+
+  const produto =
+    document.getElementById('produto').value.trim();
+
+  const valor = parseFloat(
+    document.getElementById('valor').value
+  );
+
+  const pago = parseFloat(
+    document.getElementById('pago').value
+  ) || 0;
+
+  const data =
+    document.getElementById('data').value;
+
+  if(!cliente || !produto || !valor || !data){
+
+    alert('Preencha todos os campos!');
+    return;
+  }
+
+  vendas.push({
+
+    cliente,
+    produto,
+    valor,
+    pago,
+    restante: valor - pago,
+    data,
+    historicoPagamentos:[]
+
+  });
+
+  salvarLocalStorage();
+
+  listarVendas();
+
+  limparCampos();
+}
+
+function marcarPagamento(index){
+
+  const valorRecebido =
+    prompt('Digite o valor recebido:');
+
+  if(valorRecebido === null || valorRecebido === ''){
+    return;
+  }
+
+  const valor = parseFloat(valorRecebido);
+
+  if(isNaN(valor) || valor <= 0){
+
+    alert('Digite um valor válido!');
+    return;
+  }
+
+  let dataRecebimento = prompt(
+    'Digite a data do recebimento:\n\nFormato: DD/MM/AAAA',
+    new Date().toLocaleDateString('pt-BR')
+  );
+
+  if(!dataRecebimento || dataRecebimento.trim() === ''){
+
+    dataRecebimento =
+      new Date().toLocaleDateString('pt-BR');
+  }
+
+  vendas[index].pago += valor;
+
+  if(vendas[index].pago >= vendas[index].valor){
+
+    vendas[index].pago =
+      vendas[index].valor;
+
+    vendas[index].restante = 0;
+
+  }else{
+
+    vendas[index].restante =
+      vendas[index].valor - vendas[index].pago;
+  }
+
+  vendas[index].historicoPagamentos.push({
+
+    valor,
+    data:dataRecebimento
+
+  });
+
+  salvarLocalStorage();
+
+  listarVendas();
+}
+
+function excluirVenda(index){
+
+  const confirmar = confirm(
+    'Deseja realmente excluir esta venda?'
+  );
+
+  if(confirmar){
+
+    vendas.splice(index,1);
+
+    salvarLocalStorage();
+
+    listarVendas();
+  }
+}
+
+function gerarRelatorio(cliente){
+
+  const vendasCliente = vendas.filter(
+    v => v.cliente === cliente && v.restante > 0
+  );
+
+  if(vendasCliente.length === 0){
+
+    alert('Este cliente não possui valores em aberto.');
+    return;
+  }
+
+  let totalDevendo = 0;
+
+  let html = `
+
+  <html>
+
+  <head>
+
+    <title>Relatório de ${cliente}</title>
+
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"><\/script>
+
+    <style>
+
+      body{
+        font-family:Arial,sans-serif;
+        background:#f4f4f4;
+        padding:20px;
+      }
+
+      .relatorio{
+        background:white;
+        max-width:750px;
+        margin:auto;
+        padding:25px;
+        border-radius:15px;
+        box-shadow:0 2px 10px rgba(0,0,0,0.2);
+      }
+
+      h1{
+        text-align:center;
+        color:#333;
+        margin-bottom:20px;
+      }
+
+      h2{
+        color:#555;
+        margin-bottom:20px;
+      }
+
+      .box{
+        border:1px solid #ddd;
+        border-radius:10px;
+        padding:15px;
+        margin-bottom:20px;
+      }
+
+      .produto{
+        font-size:18px;
+        font-weight:bold;
+        margin-bottom:10px;
+      }
+
+      .valor{
+        color:red;
+        font-size:18px;
+        font-weight:bold;
+        margin-top:10px;
+      }
+
+      .pagamentos{
+        margin-top:15px;
+        background:#f8f8f8;
+        padding:10px;
+        border-radius:8px;
+      }
+
+      .pagamentos h3{
+        margin-bottom:10px;
+        color:#333;
+      }
+
+      .pagamento-item{
+        margin-bottom:5px;
+        color:#444;
+      }
+
+      .total{
+        text-align:center;
+        font-size:24px;
+        font-weight:bold;
+        color:#dc3545;
+        margin-top:25px;
+      }
+
+      .acoes{
+        text-align:center;
+        margin-top:25px;
+      }
+
+      button{
+        padding:12px 18px;
+        border:none;
+        border-radius:10px;
+        cursor:pointer;
+        font-weight:bold;
+        margin:5px;
+        color:white;
+      }
+
+      .btn-imagem{
+        background:#28a745;
+      }
+
+      .btn-print{
+        background:#007bff;
+      }
+
+    </style>
+
+  </head>
+
+  <body>
+
+    <div class="relatorio" id="conteudo">
+
+      <h1>Relatório de Débitos</h1>
+
+      <h2>Cliente: ${cliente}</h2>
+
+  `;
+
+  vendasCliente.forEach(venda => {
+
+    totalDevendo += venda.restante;
+
+    html += `
+
+      <div class="box">
+
+        <div class="produto">
+          ${venda.produto}
+        </div>
+
+        <div>
+          Valor Total: R$ ${venda.valor.toFixed(2)}
+        </div>
+
+        <div>
+          Pago: R$ ${venda.pago.toFixed(2)}
+        </div>
+
+        <div class="valor">
+          Em aberto: R$ ${venda.restante.toFixed(2)}
+        </div>
+
+        <div style="margin-top:10px;">
+          Data da compra: ${venda.data}
+        </div>
+
+    `;
+
+    if(venda.historicoPagamentos.length > 0){
+
+      html += `
+
+        <div class="pagamentos">
+
+          <h3>Pagamentos Recebidos</h3>
+
+      `;
+
+      venda.historicoPagamentos.forEach(p => {
+
+        html += `
+
+          <div class="pagamento-item">
+            • R$ ${p.valor.toFixed(2)} recebido em ${p.data}
+          </div>
+
+        `;
+      });
+
+      html += `
+        </div>
+      `;
+    }
+
+    html += `
+      </div>
+    `;
+  });
+
+  html += `
+
+      <div class="total">
+        TOTAL EM ABERTO: R$ ${totalDevendo.toFixed(2)}
+      </div>
+
+      <div class="acoes">
+
+        <button class="btn-imagem" onclick="salvarImagem()">
+          Salvar como Imagem
+        </button>
+
+        <button class="btn-print" onclick="window.print()">
+          Imprimir
+        </button>
+
+      </div>
+
+    </div>
+
+    <script>
+
+      function salvarImagem(){
+
+        html2canvas(
+          document.getElementById('conteudo')
+        )
+        .then(canvas => {
+
+          const link =
+            document.createElement('a');
+
+          link.download =
+            'relatorio-${cliente}.png';
+
+          link.href =
+            canvas.toDataURL();
+
+          link.click();
+
+        });
+
+      }
+
+    <\/script>
+
+  </body>
+
+  </html>
+
+  `;
+
+  const novaJanela =
+    window.open('', '_blank');
+
+  novaJanela.document.write(html);
+
+}
+
+function atualizarTotais(){
+
+  let vendido = 0;
+  let recebido = 0;
+  let devendo = 0;
+
+  vendas.forEach(v => {
+
+    vendido += v.valor;
+    recebido += v.pago;
+    devendo += v.restante;
+
+  });
+
+  document.getElementById('totalVendas').innerHTML =
+    `Total Vendido: R$ ${vendido.toFixed(2)}`;
+
+  document.getElementById('totalRecebido').innerHTML =
+    `Total Recebido: R$ ${recebido.toFixed(2)}`;
+
+  document.getElementById('totalDevendo').innerHTML =
+    `Total Devendo: R$ ${devendo.toFixed(2)}`;
+}
+
+function listarVendas(){
+
+  const tabela =
+    document.getElementById('tabelaVendas');
+
+  const pesquisa =
+    document.getElementById('pesquisa')
+    .value
+    .toLowerCase();
+
+  tabela.innerHTML = '';
+
+  vendas.forEach((venda,index)=>{
+
+    if(
+      venda.cliente
+      .toLowerCase()
+      .includes(pesquisa)
+    ){
+
+      tabela.innerHTML += `
+
+        <tr>
+
+          <td>${venda.cliente}</td>
+
+          <td>${venda.produto}</td>
+
+          <td>
+            R$ ${venda.valor.toFixed(2)}
+          </td>
+
+          <td>
+            R$ ${venda.pago.toFixed(2)}
+          </td>
+
+          <td>
+            R$ ${venda.restante.toFixed(2)}
+          </td>
+
+          <td>${venda.data}</td>
+
+          <td class="${
+            venda.restante > 0
+            ? 'devendo'
+            : 'pago'
+          }">
+
+            ${
+              venda.restante > 0
+              ? 'Devendo'
+              : 'Pago'
+            }
+
+          </td>
+
+          <td>
+
+            <button
+              class="btn-relatorio"
+              onclick="gerarRelatorio('${venda.cliente}')"
+            >
+              Ver
+            </button>
+
+          </td>
+
+          <td>
+
+            ${
+              venda.restante > 0
+              ? `
+
+              <button
+                class="btn-receber"
+                onclick="marcarPagamento(${index})"
+              >
+                Receber
+              </button>
+
+              `
+              : '✔'
+            }
+
+            <button
+              class="btn-excluir"
+              onclick="excluirVenda(${index})"
+            >
+              Excluir
+            </button>
+
+          </td>
+
+        </tr>
+
+      `;
+    }
+  });
+
+  atualizarTotais();
+}
+
+listarVendas();
+
+</script>
+
+</body>
+</html>
